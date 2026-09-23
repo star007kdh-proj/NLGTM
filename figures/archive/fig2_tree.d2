@@ -1,0 +1,77 @@
+vars: {
+  d2-config: {
+    layout-engine: elk
+    theme-id: 0
+    pad: 30
+  }
+}
+direction: down
+
+classes: {
+  req: {
+    style: {fill: "#FFF7ED"; stroke: "#F97316"; border-radius: 10; font-size: 18; bold: true; stroke-width: 2}
+  }
+  axis: {
+    style: {fill: "#FFFFFF"; stroke: "#E5E7EB"; border-radius: 10; font-size: 14; font-color: "#6B7280"}
+  }
+  cls: {
+    style: {fill: "#EEF2FF"; stroke: "#6366F1"; border-radius: 8; font-size: 15}
+  }
+  ok: {
+    style: {fill: "#DCFCE7"; stroke: "#16A34A"; font-color: "#15803D"; border-radius: 8; font-size: 14}
+  }
+  bug: {
+    style: {fill: "#FEE2E2"; stroke: "#DC2626"; font-color: "#B91C1C"; border-radius: 8; font-size: 14; bold: true}
+  }
+  edge: {
+    style: {stroke: "#CBD5E1"}
+  }
+}
+
+title: |md
+  # 짧은 요구사항 하나가 갈라지는 경우들을 따라가면 버그가 보인다
+| {near: top-center}
+
+req: 틀렸다고 판정된 BTB entry는 지워져야 한다 {class: req}
+
+bank: fetch block이 어느 bank에서 시작하나 {
+  class: axis
+  b0: bank 0 {class: cls}
+  b1: bank 1 {class: cls}
+}
+slot: 어떤 슬롯인가 {
+  class: axis
+  s0: 보통 슬롯 {class: cls}
+  s1: pair의 두 번째 슬롯 {class: cls}
+}
+mem: 어디에 저장돼 있나 {
+  class: axis
+  m0: SRAM {class: cls}
+  m1: write buffer {class: cls}
+  m2: victim cache {class: cls}
+}
+
+req -> bank: {class: edge}
+req -> slot: {class: edge}
+req -> mem: {class: edge}
+
+ok0: 지워진다 {class: ok}
+bug1: 안 지워진다\nbank 번호를 다른 방식으로 세고 있었다 {class: bug}
+ok2: 지워진다 {class: ok}
+bug3: 엉뚱한 entry가 지워진다\n학습 경로에는 있는 예외 처리가 여기엔 없었다 {class: bug}
+ok4: 지워진다 {class: ok}
+bug5: 옆 way까지 같이 지워진다\nflush가 way를 구분하지 않았다 {class: bug}
+ok6: 지워진다 {class: ok}
+
+bank.b0 -> ok0: {class: edge}
+bank.b1 -> bug1: {class: edge}
+slot.s0 -> ok2: {class: edge}
+slot.s1 -> bug3: {class: edge}
+mem.m0 -> ok4: {class: edge}
+mem.m1 -> bug5: {class: edge}
+mem.m2 -> ok6: {class: edge}
+
+note: |md
+  경우를 나누는 축은 프로젝트 설정에 적어 두고, 나누는 일은 NLGTM이 한다.
+  빨간 상자 셋이 실제로 있었던 버그다. 요구사항이 없어서 생긴 게 아니라, 특정 경우에만 안 지켜져서 생겼다.
+| {near: bottom-center}

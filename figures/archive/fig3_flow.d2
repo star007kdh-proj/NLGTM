@@ -1,0 +1,73 @@
+vars: {
+  d2-config: {
+    layout-engine: elk
+    theme-id: 0
+    pad: 30
+  }
+}
+direction: down
+
+classes: {
+  input: {
+    style: {fill: "#F3F4F6"; stroke: "#9CA3AF"; border-radius: 10; font-size: 15}
+  }
+  agent: {
+    style: {fill: "#EEF2FF"; stroke: "#6366F1"; border-radius: 10; font-size: 15}
+  }
+  human: {
+    style: {fill: "#FFF7ED"; stroke: "#F97316"; border-radius: 10; font-size: 15; stroke-width: 2}
+  }
+  phase: {
+    style: {fill: "#FFFFFF"; stroke: "#E5E7EB"; border-radius: 12; font-size: 16; bold: true; font-color: "#374151"}
+  }
+  e: {
+    style: {stroke: "#64748B"; font-size: 13; font-color: "#6B7280"}
+  }
+  back: {
+    style: {stroke: "#F97316"; stroke-dash: 5; font-size: 13; font-color: "#EA580C"}
+  }
+}
+
+title: |md
+  # NLGTM이 도는 순서. 설계자는 세 군데서 읽고 표시만 한다
+| {near: top-center}
+
+p1: 먼저 요구사항을 만든다. 고칠 게 없을 때까지 추출과 리뷰를 반복하고, 승인한 문장은 다시 건드리지 않는다 {
+  class: phase
+  grid-rows: 1
+  grid-gap: 40
+  code: 코드, 주석, assert,\n성능 카운터, 커밋 이력 {class: input}
+  mas: 블록 요약\n무엇을 위한 블록이고\n어떤 상태를 어떻게 바꾸나 {class: agent}
+  req: 요구사항 추출\n짧은 문장 + 근거 {class: agent}
+  rev: 설계자 리뷰\naccept / edit / reject {class: human}
+  code -> mas: {class: e}
+  mas -> req: {class: e}
+  req -> rev: {class: e}
+  rev -> req: {class: back}
+}
+
+p2: 그 다음 깨뜨리고, 확인하고, 고친다 {
+  class: phase
+  grid-rows: 1
+  grid-gap: 40
+  dec: 경우 나누기\nbank, 슬롯, 저장소, 부하 … {class: agent}
+  ref: 반례 찾기\n경우마다 Agent 하나, 병렬 {class: agent}
+  ver: 독립 검증\n결론만 받아 처음부터 다시 추적 {class: agent}
+  rep: 보고서\n확인된 것만 올라간다 {class: agent}
+  tri: 설계자 triage\naccept / reject {class: human}
+  fix: 최소 수정, 컴파일,\nPR 생성 {class: agent}
+  mrg: 설계자 merge {class: human}
+  dec -> ref: {class: e}
+  ref -> ver: {class: e}
+  ver -> rep: {class: e}
+  rep -> tri: {class: e}
+  tri -> fix: {class: e}
+  fix -> mrg: {class: e}
+}
+
+p1 -> p2: 승인된 요구사항만 넘어간다 {class: e}
+p2.rep -> p1.req: 요구사항 없이 도는 동작은\n후보로 되돌려 보낸다 {class: back}
+
+note: |md
+  파란 상자는 사람 없이 돈다. 주황 상자에서만 설계자가 읽고 표시한다. NLGTM은 merge하지 않는다.
+| {near: bottom-center}

@@ -1,0 +1,70 @@
+vars: {
+  d2-config: {
+    layout-engine: elk
+    theme-id: 0
+    pad: 30
+  }
+}
+direction: down
+
+classes: {
+  step: {
+    style: {fill: "#F3F4F6"; stroke: "#9CA3AF"; border-radius: 8; font-size: 15}
+  }
+  agent: {
+    style: {fill: "#EEF2FF"; stroke: "#6366F1"; border-radius: 8; font-size: 15}
+  }
+  human: {
+    style: {fill: "#FFF7ED"; stroke: "#F97316"; border-radius: 8; font-size: 15}
+  }
+  bad: {
+    style: {fill: "#FEE2E2"; stroke: "#DC2626"; font-color: "#B91C1C"; border-radius: 8; bold: true; font-size: 16}
+  }
+  good: {
+    style: {fill: "#DCFCE7"; stroke: "#16A34A"; font-color: "#15803D"; border-radius: 8; bold: true; font-size: 16}
+  }
+  lane: {
+    style: {fill: "#FFFFFF"; stroke: "#E5E7EB"; border-radius: 12; font-size: 18; bold: true}
+  }
+  gap: {
+    shape: text
+    style: {font-size: 22; font-color: "#9CA3AF"}
+  }
+}
+
+title: |md
+  # 버그 하나를 잡는 데 얼마나 걸리나
+| {near: top-center}
+
+emu: 에뮬레이션으로 잡을 때 (ZeBu) {
+  class: lane
+  grid-rows: 1
+  grid-gap: 14
+  t1: 파형 확보\n가설\n수정\n재실행 {class: step}
+  l1: 한 턴에 2~3일 {class: gap; style.font-size: 14}
+  t2: 파형 확보\n가설\n수정\n재실행 {class: step}
+  l2: 또 2~3일 {class: gap; style.font-size: 14}
+  t3: 파형 확보\n가설\n수정\n재실행 {class: step}
+  l3: "…" {class: gap}
+  r: 한 달이 넘게 걸렸다 {class: bad}
+}
+
+rev: 리뷰로 잡을 때 (NLGTM) {
+  class: lane
+  grid-rows: 1
+  grid-gap: 14
+  s1: 요구사항 추출 {class: agent}
+  s2: 설계자 리뷰 {class: human}
+  s3: 반례 탐색 {class: agent}
+  s4: 독립 검증 {class: agent}
+  s5: 수정 PR {class: agent}
+  r: 몇 시간이면 끝난다 {class: good}
+}
+
+emu -> rev: 같은 버그, 같은 코드 {
+  style: {stroke: "#9CA3AF"; stroke-dash: 4; font-size: 13; font-color: "#6B7280"}
+}
+
+note: |md
+  파형을 기다리는 시간이 없다. 설계자가 쓰는 시간은 블록당 30분 안쪽이다.
+| {near: bottom-center}

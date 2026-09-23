@@ -1,0 +1,47 @@
+[
+  {
+    "id": "F-ITTAGE-5-5-a",
+    "claim": "C-ITTAGE-5-5",
+    "requirement": "R-ITTAGE-5",
+    "verdict": "COUNTEREXAMPLE",
+    "location": [
+      "ff68f3c5a:src/main/scala/xiangshan/frontend/bpu/ittage/Bundles.scala:42-49",
+      "ff68f3c5a:src/main/scala/xiangshan/frontend/bpu/ittage/IttageTable.scala:114-116",
+      "ff68f3c5a:src/main/scala/xiangshan/frontend/bpu/ittage/IttageTable.scala:177-179",
+      "ff68f3c5a:src/main/scala/xiangshan/frontend/bpu/ittage/IttageTable.scala:190-194",
+      "ff68f3c5a:src/main/scala/xiangshan/frontend/bpu/ittage/IttageTable.scala:212-215",
+      "ff68f3c5a:src/main/scala/xiangshan/frontend/bpu/ittage/IttageTable.scala:225",
+      "ff68f3c5a:src/main/scala/xiangshan/frontend/bpu/ittage/IttageTable.scala:249-253",
+      "ff68f3c5a:src/main/scala/xiangshan/frontend/bpu/ittage/IttageTable.scala:260",
+      "ff68f3c5a:utility/src/main/scala/utility/sram/SRAMTemplate.scala:64-66",
+      "ff68f3c5a:utility/src/main/scala/utility/sram/SRAMTemplate.scala:314-315",
+      "ff68f3c5a:utility/src/main/scala/utility/sram/SRAMTemplate.scala:324",
+      "ff68f3c5a:utility/src/main/scala/utility/sram/SRAMTemplate.scala:692-693"
+    ],
+    "failing_input": "Active parameters (Parameters.scala:22-36): UsefulCntWidth=1, ConfidenceCntWidth=2, TargetWidth=20, RegionNums=16, instOffsetBits=1 (HasCExtension, xiangshan/Parameters.scala:772-773). Table 0 (tagLen=4): entry word = 33 bits. IttageEntry declares, in order, valid(1) / tag(4) / confidenceCnt.value(2) / targetOffset{offset.addr(19 = 20-1 pruned), pointer(4), usePcRegion(1)} / usefulCnt.value(1) / paddingBit(1) (Bundles.scala:42-55, PrunedAddr.scala:25-26). Chisel Bundle.asUInt puts the LAST declared field at the LOWEST bits, so the SRAM word (wdata = io.w.req.bits.data.asUInt, SRAMTemplate.scala:324) is: [32]=valid, [31:28]=tag, [27:26]=confidenceCnt, [25:7]=offset.addr, [6:3]=pointer, [2]=usePcRegion, [1]=usefulCnt.value, [0]=paddingBit. Same shape for the other tables (sz = tagLen+29 = 37/42/45/61), usefulCnt is always bit 1 and paddingBit always bit 0. Now take a set in any table where an entry has usefulCnt.value=1 (e.g. provider hit with altDiffers && providerTarget==realTarget, Ittage.scala:351-354), then tickCnt saturates (Ittage.scala:395-398) -> io.update.resetUsefulCnt -> needReset (IttageTable.scala:185-186) -> usefulCanReset on an idle cycle (IttageTable.scala:182) -> write buffer receives setIdx=resetSet, bitmask=updateUsBitmask (IttageTable.scala:193, 212-215).",
+    "wrong_result": "updateUsBitmask = VecInit.tabulate(sz)(i => i < UsefulCntWidth) = only bit 0 set (IttageTable.scala:179). SRAMTemplate maps bitmask bit n to data bit n of data.asUInt (flattened_bitmask(n) = waymask(n/dataWidth) && bitmask(n%dataWidth), SRAMTemplate.scala:64-66; FoldedSRAMTemplate passes bitmask through unchanged, :692-693; used as _wmask at :314-315). Bit 0 of the word is paddingBit, which is driven DontCare (IttageTable.scala:260). So the sweep write for every set only rewrites the padding bit with an undefined value; bit 1 (usefulCnt.value) is masked off and keeps its old value 1. updateWdata.usefulCnt := SaturateNegative (IttageTable.scala:249-253) is computed but never lands in the array. After the setsPerBank-cycle sweep and needReset := false (IttageTable.scala:187-188) every useful bit in every table is unchanged. The require at IttageTable.scala:116 passes (ittageEntrySz = 1+tagLen+2+1+20+4+1 equals getWidth = 1+tagLen+2+(19+4+1)+1+1 because the pruned offset bit is compensated by paddingBit), so nothing catches the mismatch at elaboration. The comment on Bundles.scala:47 ('useful bit needs to be at the lowest bit') states the intended layout that paddingBit on line 48 violates.",
+    "required_result": "The sweep write at resetSet clears usefulCnt.value (bit 1 for the active parameters) of the stored entry to 0 in every bank, leaving valid/tag/confidenceCnt/targetOffset intact.",
+    "observe": "Perf: ittage_us_tick_reset / ittage_reset_u (IttageTable.scala:264, Ittage.scala:416) keep firing while ittage_allocate (Ittage.scala:419) stays flat, because s2_allocatableSlots (Ittage.scala:296-297) requires usefulCnt.isSaturateNegative which the sweep never re-establishes. Waveform: at IttageTable.scala:215 writePort.bits.bitmask == 0x1 while usefulCanReset (IttageTable.scala:182) is high; at the SRAM, wmask (SRAMTemplate.scala:314) has only bit 0 set; read back the same set later and io.resp.bits.usefulCnt.value (IttageTable.scala:165) is still 1.",
+    "mechanism": "width"
+  },
+  {
+    "id": "F-ITTAGE-5-5-b",
+    "claim": "C-ITTAGE-5-5",
+    "requirement": "R-ITTAGE-5",
+    "verdict": "COUNTEREXAMPLE",
+    "location": [
+      "ff68f3c5a:src/main/scala/xiangshan/frontend/bpu/ittage/Bundles.scala:47-48",
+      "ff68f3c5a:src/main/scala/xiangshan/frontend/bpu/ittage/IttageTable.scala:177-178",
+      "ff68f3c5a:src/main/scala/xiangshan/frontend/bpu/ittage/IttageTable.scala:190-194",
+      "ff68f3c5a:src/main/scala/xiangshan/frontend/bpu/ittage/IttageTable.scala:249-253",
+      "ff68f3c5a:src/main/scala/xiangshan/frontend/bpu/ittage/Ittage.scala:181",
+      "ff68f3c5a:src/main/scala/xiangshan/frontend/bpu/ittage/Ittage.scala:338-345",
+      "ff68f3c5a:src/main/scala/xiangshan/frontend/bpu/ittage/Ittage.scala:409-410"
+    ],
+    "failing_input": "Same layout as F-ITTAGE-5-5-a (usefulCnt.value at bit 1, paddingBit at bit 0). Train with t1_meta.provider.valid, usedAltPred (altProvider.valid && providerCnt saturate-negative) and updateMisPred (Ittage.scala:335-338): the alt table gets updateMask=1 and updateUsefulCntMask=0 (Ittage.scala:339-340); updateUsefulCnt(altProvider) is left at DontCare (Ittage.scala:181). Next cycle io.update.valid=1, io.update.usefulCntValid=0 (Ittage.scala:409-410), so updateBitmask = updateNoUsBitmask (IttageTable.scala:193).",
+    "wrong_result": "updateNoUsBitmask = bits with index >= UsefulCntWidth, i.e. bits [sz-1:1] (IttageTable.scala:178). That range includes bit 1 = usefulCnt.value and excludes only bit 0 = paddingBit. updateWdata.usefulCnt := io.update.usefulCnt (IttageTable.scala:252) carries the DontCare value latched at Ittage.scala:410, so the 'all-but-useful' write overwrites the alt entry's useful bit with an undefined value (0 after firtool invalid lowering, or whatever the synthesizer picks). The mask intended to protect the useful bit protects the padding bit instead; MAS M10 ('its useful ... untouched') does not hold.",
+    "required_result": "A write with usefulCntValid=0 leaves the stored usefulCnt.value bit unchanged.",
+    "observe": "Waveform: at IttageTable.scala:215 writePort.bits.bitmask == all-ones except bit 0 (e.g. 0x1_FFFF_FFFE for table 0) when io.update.valid && !io.update.usefulCntValid; compare the alt entry's io.resp.bits.usefulCnt.value (IttageTable.scala:165) before and after such an update.",
+    "mechanism": "isolation"
+  }
+]

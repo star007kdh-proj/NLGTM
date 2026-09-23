@@ -1,0 +1,83 @@
+[
+  {
+    "id": "C-ITTAGE-5-1",
+    "requirement": "R-ITTAGE-5",
+    "kind": "state-class",
+    "axis": "reset 트리거 전달",
+    "text": "tickCnt가 포화되어 reset 펄스가 나가면 5개 테이블 모두 needReset을 세운다. 어떤 테이블도 그 cycle에 바쁘다는 이유로 펄스를 놓치지 않는다.",
+    "trigger": "Ittage.scala:395-402",
+    "effect": "IttageTable.scala:185-186"
+  },
+  {
+    "id": "C-ITTAGE-5-2",
+    "requirement": "R-ITTAGE-5",
+    "kind": "liveness",
+    "axis": "부하 = 매 cycle 예측 요청 또는 지속 학습",
+    "text": "needReset이 선 뒤, 매 cycle io.req.fire가 참인 부하(full 벤치)와 update.valid가 잦은 부하에서도 sweep 카운터 resetSet이 유한 시간 내 setsPerBank까지 진행되어 needReset이 내려간다.",
+    "trigger": "IttageTable.scala:182",
+    "effect": "IttageTable.scala:184,187-188"
+  },
+  {
+    "id": "C-ITTAGE-5-3",
+    "requirement": "R-ITTAGE-5",
+    "kind": "boundary",
+    "axis": "reset 범위 = 모든 bank·모든 set·모든 테이블",
+    "text": "sweep이 완료되면 각 테이블의 모든 bank, 모든 set의 useful 비트가 0이 된다. resetSet은 setsPerBank 전체를 순회하고, 쓰기는 모든 bank의 write buffer에 들어간다.",
+    "trigger": "IttageTable.scala:184",
+    "effect": "IttageTable.scala:210-216"
+  },
+  {
+    "id": "C-ITTAGE-5-4",
+    "requirement": "R-ITTAGE-5",
+    "kind": "stale",
+    "axis": "저장 매체 = write buffer 경유",
+    "text": "sweep이 write buffer에 넣은 useful-clear 쓰기는 buffer가 가득 찼거나 같은 set에 update 쓰기가 대기 중이어도 SRAM에 도달한다. 버려지거나 다른 쓰기에 덮여 사라지지 않는다.",
+    "trigger": "IttageTable.scala:210-216",
+    "effect": "IttageTable.scala:219-227, bpu/WriteBuffer.scala"
+  },
+  {
+    "id": "C-ITTAGE-5-5",
+    "requirement": "R-ITTAGE-5",
+    "kind": "boundary",
+    "axis": "비트 폭 = entry 레이아웃과 마스크",
+    "text": "sweep의 useful-only 비트마스크(updateUsBitmask)가 가리키는 비트 위치가 SRAM에 저장된 IttageEntry의 useful 필드 위치와 정확히 일치한다. 엔트리 폭(ittageEntrySz)에 padding이 포함되거나 필드 순서가 달라도 useful 비트를 정확히 지운다.",
+    "trigger": "IttageTable.scala:175-179",
+    "effect": "Bundles.scala IttageEntry, IttageTable.scala:249-253"
+  },
+  {
+    "id": "C-ITTAGE-5-6",
+    "requirement": "R-ITTAGE-5",
+    "kind": "state-class",
+    "axis": "펄스 타이밍 = sweep 진행 중 재요청, resetFinish와 동시",
+    "text": "needReset이 이미 참인 동안 두 번째 resetUsefulCnt 펄스가 오거나, 펄스가 resetFinish와 같은 cycle에 도착해도 초기화 요청이 잊히지 않는다.",
+    "trigger": "IttageTable.scala:185-189",
+    "effect": "IttageTable.scala:185-189"
+  },
+  {
+    "id": "C-ITTAGE-6-1",
+    "requirement": "R-ITTAGE-6",
+    "kind": "isolation",
+    "axis": "주소 = bank·set 선택",
+    "text": "update 쓰기는 해시된 bank의 해시된 set 하나만, sweep 쓰기는 각 bank의 resetSet 하나만 바꾼다. 다른 set이나 다른 bank의 엔트리는 바뀌지 않는다.",
+    "trigger": "IttageTable.scala:169-172, 210-216",
+    "effect": "IttageTable.scala:219-227"
+  },
+  {
+    "id": "C-ITTAGE-6-2",
+    "requirement": "R-ITTAGE-6",
+    "kind": "isolation",
+    "axis": "필드 = 비트마스크 선택",
+    "text": "usefulCntValid가 없는 update 쓰기는 useful 비트를 바꾸지 않고, sweep 쓰기는 useful 비트 외의 필드(cnt, tag, target, pointer, valid)를 바꾸지 않는다.",
+    "trigger": "IttageTable.scala:190-194",
+    "effect": "IttageTable.scala:249-259"
+  },
+  {
+    "id": "C-ITTAGE-6-3",
+    "requirement": "R-ITTAGE-6",
+    "kind": "isolation",
+    "axis": "형제 경로 = sweep 쓰기와 update 쓰기가 같은 write buffer를 공유",
+    "text": "sweep 쓰기와 update 쓰기가 같은 cycle 또는 연속 cycle에 같은 set을 겨냥해 같은 write buffer에 들어가도, 한 쓰기의 데이터가 다른 쓰기의 비트마스크로 적용되는 일이 없다.",
+    "trigger": "IttageTable.scala:210-216",
+    "effect": "bpu/WriteBuffer.scala (same-set handling)"
+  }
+]

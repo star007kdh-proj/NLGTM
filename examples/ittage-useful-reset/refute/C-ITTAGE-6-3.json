@@ -1,0 +1,40 @@
+[
+  {
+    "id": "F-ITTAGE-6-3-a",
+    "claim": "C-ITTAGE-6-3",
+    "requirement": "R-ITTAGE-6",
+    "verdict": "COUNTEREXAMPLE",
+    "location": [
+      "ff68f3c5a:src/main/scala/xiangshan/frontend/bpu/WriteBuffer.scala:131-133",
+      "ff68f3c5a:src/main/scala/xiangshan/frontend/bpu/WriteBuffer.scala:147",
+      "ff68f3c5a:src/main/scala/xiangshan/frontend/bpu/WriteBuffer.scala:175-177",
+      "ff68f3c5a:src/main/scala/xiangshan/frontend/bpu/WriteBuffer.scala:219-227",
+      "ff68f3c5a:src/main/scala/xiangshan/frontend/bpu/ittage/IttageTable.scala:182",
+      "ff68f3c5a:src/main/scala/xiangshan/frontend/bpu/ittage/IttageTable.scala:210-216",
+      "ff68f3c5a:src/main/scala/xiangshan/frontend/bpu/ittage/IttageTable.scala:221-226"
+    ],
+    "failing_input": "Table t, bank B, write buffer of bank B has no other pending entry. needReset=1 (IttageTable.scala:181-189) and the sweep counter resetSet currently equals S (it only advances on usefulCanReset cycles, :184). Cycle N: io.update.valid=1, updateBankMask(B)=1, updateIdx=S, usefulCntValid=0 -> writePort.valid=1, setIdx=S, bitmask=updateNoUsBitmask, entry=D1 (:190-194, :212-215). No hit (buffer empty) -> entries(0)(v):={D1,S,NoUs}, needWrite(0)(v):=1 (WriteBuffer.scala:163-168), visible at N+1. usefulCanReset=0 at N because io.update.valid=1 (:182). Cycle N+1: no io.req.fire and no io.update.valid -> usefulCanReset=1 -> every bank's writePort.valid=1 with setIdx=resetSet=S, bitmask=updateUsBitmask, entry=D2 (D2 = updateWdata with usefulCnt=SaturateNegative, other fields whatever the update regs hold, :242-259). Reverse order (sweep at N pending in bank B, update to set S of bank B at N+1 with no read of bank B at N+1) is symmetric.",
+    "wrong_result": "At N+1 in bank B's WriteBuffer: setIdx match only (IttageWriteReq has no tag, Abstracts.scala:56 -> tag.getOrElse(0.U)===0.U at WriteBuffer.scala:133), so hit=1 and hitNotWritten=1 because needWrite(v) is still 1 (:147). Branch :175-177 executes entries(v):={D2,S,Us}, valids(v):=1 and does NOT touch needWrite. In the same cycle the read side sees readValidVec=needWrite (:216), readIdx=PriorityEncoder=v (:219), readPort.ready = bank.io.w.req.ready && !bank.io.r.req.valid = 1 because usefulCanReset implies io.req.fire=0 (IttageTable.scala:154,182,226; SRAMTemplate w.req.ready=!resetHold&&!conflictStallWrite, utility/.../SRAMTemplate.scala:496), so {D1,S,NoUs} is pushed to the SRAM and needWrite(v):=0 (:227). Register state at N+2: entries(v)={D2,S,Us}, needWrite(v)=0, valids(v)=1. The sweep write for set S of bank B is never drained: the useful bit of set S in bank B is not reset, while resetSet has moved on to S+1 and the sweep finishes with resetFinish (:184,187). In the reverse order the same race drops the update {D1,S,NoUs}: tag/confidenceCnt/targetOffset of the provider update or allocation are never written, and this drop is invisible to ittage_table_update_drop (:276) because the buffer was not full.",
+    "required_result": "Both writes reach the SRAM (their bitmasks are disjoint: NoUs = all bits >= UsefulCntWidth, Us = bits < UsefulCntWidth, IttageTable.scala:177-179); set S of bank B ends with D1's tag/cnt/target and usefulCnt=0.",
+    "observe": "Perf counter WriteBuffer_ittageTable{t}_bank{b}_port0_hit_not_written (WriteBuffer.scala:205) incrementing in a cycle where readReadyVec(0) && !emptyVec(0) (:225) is also true and readIdx (:219) equals the hit entry: that cycle is the lost write. Waveform: ittage_write_buffer_bank{b}.needWrite (:66) for entry v goes 1->0 at N+1 while entries(v).bitmask (:67, written at :176) changes from updateNoUsBitmask to updateUsBitmask; afterwards no read of that entry ever occurs. End-to-end: after resetFinish (IttageTable.scala:184) the SRAM row S of bank B still reads usefulCnt=1 via io.resp.bits.usefulCnt (:165) on the next predict hit.",
+    "mechanism": "guard"
+  },
+  {
+    "id": "F-ITTAGE-6-3-b",
+    "claim": "C-ITTAGE-6-3",
+    "requirement": "R-ITTAGE-6",
+    "verdict": "COUNTEREXAMPLE",
+    "location": [
+      "ff68f3c5a:src/main/scala/xiangshan/frontend/bpu/WriteBuffer.scala:131-133",
+      "ff68f3c5a:src/main/scala/xiangshan/frontend/bpu/WriteBuffer.scala:175-177",
+      "ff68f3c5a:src/main/scala/xiangshan/frontend/bpu/WriteBuffer.scala:219-227",
+      "ff68f3c5a:src/main/scala/xiangshan/frontend/bpu/ittage/IttageTable.scala:177-179",
+      "ff68f3c5a:src/main/scala/xiangshan/frontend/bpu/ittage/IttageTable.scala:210-216"
+    ],
+    "failing_input": "Same-set hit on a pending entry that is NOT the entry being drained this cycle. Forward order: cycle N-1 update to set S' of bank B (pending at index 0), cycle N update to set S of bank B with usefulCntValid=0 (pending at index 1, entry={D1,S,NoUs}), cycle N+1 sweep (usefulCanReset, resetSet=S) writes {D2,S,Us} to bank B. readIdx=PriorityEncoder(needWrite)=0 drains S' (WriteBuffer.scala:219-227); the hit on index 1 is hitNotWritten. Reverse order: cycle N sweep writes {D2,S,Us} pending in bank B; cycle N+1 update to set S of bank B while io.req.fire && s0_bankMask(B) (IttageTable.scala:154) so readPort.ready=0 (:226) and nothing drains.",
+    "wrong_result": "WriteBuffer.scala:176 replaces the pending bundle wholesale: entries(rowIdx)(hitIdx) := io.write.bits, i.e. entry AND bitmask are overwritten, no merge of the two disjoint field sets. Forward order: pending {D1,S,NoUs} becomes {D2,S,Us}; only usefulCnt:=0 reaches the SRAM, D1's tag/confidenceCnt/targetOffset (provider update or fresh allocation) are silently dropped, not counted by ittage_table_update_drop (IttageTable.scala:276). Reverse order: pending {D2,S,Us} becomes {D1,S,NoUs}; the sweep's useful reset for set S of bank B is dropped while resetSet advances past S. (The literal statement 'data of one write applied under the other's bitmask' does not occur: entry and bitmask always travel together in :176/:182. The isolation failure is that one write is discarded.)",
+    "required_result": "Both partial writes are applied: SRAM set S of bank B ends with D1's tag/cnt/target and usefulCnt=0.",
+    "observe": "Perf counter WriteBuffer_ittageTable{t}_bank{b}_port0_hit_not_written (WriteBuffer.scala:205) > 0 while needReset (IttageTable.scala:181) is high: every such increment during a sweep is a dropped update or a dropped useful reset, because sweep bitmask and update bitmask are never equal (:177-179) and the hit replaces rather than merges. Waveform: ittage_write_buffer_bank{b}.entries(hitIdx).bitmask (:67) flipping between updateNoUsBitmask and updateUsBitmask at :176 while needWrite(hitIdx) stays 1; the field set that was in the bitmask before the flip never reaches bank.io.w (IttageTable.scala:225).",
+    "mechanism": "isolation"
+  }
+]

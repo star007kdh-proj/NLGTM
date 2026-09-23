@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>NLGTM Requirement Tree · ITTAGE</title>
+<style>
+  :root {
+    --ink: #0F172A; --ink-2: #334155; --muted: #64748B; --line: #E2E8F0;
+    --agent: #4F46E5; --agent-bg: #EEF2FF; --agent-line: #C7D2FE;
+    --human: #EA580C; --human-bg: #FFF7ED; --human-line: #FDBA74;
+    --ok: #16A34A; --ok-bg: #F0FDF4; --ok-line: #BBF7D0;
+    --bad: #DC2626; --bad-bg: #FEF2F2; --bad-line: #FECACA;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1920px; height: 1080px; background: #FFFFFF; }
+  body { font-family: "Noto Sans KR", "Pretendard", "Malgun Gothic", "Segoe UI", sans-serif; color: var(--ink); position: relative; overflow: hidden; }
+
+  .brand { position: absolute; left: 80px; top: 56px; display: flex; align-items: baseline; gap: 18px; }
+  .brand .logo { font-size: 40px; font-weight: 800; letter-spacing: -0.5px; }
+  .brand .logo span { color: var(--agent); }
+  .brand .tag { font-size: 18px; color: var(--muted); font-weight: 500; }
+  .title { position: absolute; left: 80px; top: 116px; font-size: 26px; font-weight: 600; color: var(--ink-2); }
+  .legend { position: absolute; right: 80px; top: 70px; display: flex; gap: 22px; font-size: 15px; color: var(--muted); }
+  .legend i { display: inline-block; width: 14px; height: 14px; border-radius: 4px; margin-right: 8px; vertical-align: -1px; }
+
+  .req { position: absolute; left: 400px; top: 186px; width: 1120px; height: 118px; border-radius: 16px; border: 2px solid var(--human-line);
+         background: linear-gradient(180deg, #FFFBF7 0%, #FFFFFF 70%); box-shadow: 0 6px 18px rgba(15,23,42,.06);
+         display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; }
+  .req .top { display: flex; align-items: center; gap: 20px; }
+  .req .k { font-size: 12px; font-weight: 700; letter-spacing: 1px; color: var(--human); text-transform: uppercase; background: var(--human-bg); border: 1px solid var(--human-line); border-radius: 999px; padding: 4px 12px; }
+  .req .t { font-size: 25px; font-weight: 700; letter-spacing: -0.2px; }
+  .req .why { font-size: 14.5px; color: var(--muted); font-weight: 500; }
+  .req .why b { color: var(--ink-2); font-weight: 600; }
+
+  .axis { position: absolute; top: 388px; height: 150px; border-radius: 16px; border: 1px dashed #CBD5E1; background: #FAFBFC; padding: 18px 20px; }
+  .axis .h { font-size: 15px; font-weight: 700; color: var(--muted); letter-spacing: .2px; margin-bottom: 14px; }
+  .axis .row { display: flex; gap: 14px; }
+  .chip { height: 66px; border-radius: 12px; background: var(--agent-bg); border: 1px solid var(--agent-line); color: var(--ink);
+          display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; font-size: 16px; font-weight: 600; padding: 0 10px; line-height: 1.25; }
+  .chip .s { font-size: 12.5px; font-weight: 500; color: #64748B; margin-top: 3px; }
+
+  .leaf { position: absolute; top: 606px; height: 160px; border-radius: 14px; padding: 16px 18px; box-shadow: 0 6px 18px rgba(15,23,42,.05); }
+  .leaf.ok { background: var(--ok-bg); border: 1px solid var(--ok-line); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; }
+  .leaf.ok .t { font-size: 17px; font-weight: 700; color: var(--ok); display: flex; align-items: center; gap: 8px; }
+  .leaf.ok .d { font-size: 13.5px; color: #166534; text-align: center; line-height: 1.4; }
+  .leaf.ok svg { width: 20px; height: 20px; color: var(--ok); }
+  .leaf.bad { background: var(--bad-bg); border: 1px solid var(--bad-line); }
+  .leaf.bad .t { font-size: 18px; font-weight: 700; color: var(--bad); display: flex; align-items: center; gap: 8px; }
+  .leaf.bad .t svg { width: 20px; height: 20px; }
+  .leaf.bad .d { font-size: 14px; color: #7F1D1D; line-height: 1.5; margin-top: 8px; }
+
+  svg.overlay { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; pointer-events: none; }
+
+  .kpis { position: absolute; left: 80px; top: 836px; display: flex; gap: 24px; }
+  .kpi { width: 420px; height: 96px; border-radius: 14px; border: 1px solid var(--line); background: #F8FAFC; padding: 16px 20px; display: flex; align-items: center; gap: 18px; }
+  .kpi .n { font-size: 38px; font-weight: 800; letter-spacing: -1px; min-width: 64px; }
+  .kpi .n.b { color: var(--bad); } .kpi .n.a { color: var(--agent); } .kpi .n.h { color: var(--human); }
+  .kpi .d { font-size: 15px; color: var(--ink-2); line-height: 1.4; font-weight: 500; }
+  .note { position: absolute; left: 80px; top: 956px; font-size: 16px; color: var(--ink-2); font-weight: 500; }
+  .foot { position: absolute; left: 80px; bottom: 34px; font-size: 13px; color: #94A3B8; }
+</style>
+</head>
+<body>
+
+<div class="brand"><div class="logo">NL<span>GTM</span></div><div class="tag">Not Looks Good To Me</div></div>
+<div class="title">단순화된 요구사항 하나 · 조건별 검사 항목 · ITTAGE 버그 2건</div>
+<div class="legend">
+  <span><i style="background:var(--human)"></i>승인된 요구사항</span>
+  <span><i style="background:var(--agent)"></i>Agent가 도출한 검사 항목</span>
+  <span><i style="background:var(--ok)"></i>반례 없음</span>
+  <span><i style="background:var(--bad)"></i>반례 = 버그</span>
+</div>
+
+<svg class="overlay" viewBox="0 0 1920 1080">
+  <g fill="none" stroke="#CBD5E1" stroke-width="2.5">
+    <!-- requirement -> axes -->
+    <path d="M960,304 L960,340 L330,340 L330,386"/>
+    <path d="M960,340 L960,386"/>
+    <path d="M960,340 L1590,340 L1590,386"/>
+    <!-- chips -> leaves -->
+    <path d="M225,538 L225,604"/><path d="M435,538 L435,604"/>
+    <path d="M855,538 L855,604"/><path d="M1065,538 L1065,604"/>
+    <path d="M1420,538 L1420,604"/><path d="M1594,538 L1594,604"/><path d="M1768,538 L1768,604"/>
+  </g>
+</svg>
+
+<div class="req">
+  <div class="top"><span class="k">Requirement</span><span class="t">ITTAGE useful counter → tick 포화 시 모든 set을 유한 시간 내 reset</span></div>
+  <div class="why"><b>배경</b> useful=1 entry는 교체 대상에서 제외 · reset이 멈추면 새 entry를 넣을 자리 소멸 · 예측 정확도 하락</div>
+</div>
+
+<!-- axis 1: sweep timing -->
+<div class="axis" style="left:100px; width:460px;">
+  <div class="h">reset sweep이 진행되는 cycle</div>
+  <div class="row"><div class="chip" style="width:200px;">idle cycle 존재<span class="s">짧은 slice 벤치</span></div><div class="chip" style="width:200px;">매 cycle 예측 요청<span class="s">full 벤치</span></div></div>
+</div>
+<!-- axis 2: reset scope -->
+<div class="axis" style="left:730px; width:460px;">
+  <div class="h">reset이 도는 범위</div>
+  <div class="row"><div class="chip" style="width:200px;">모든 테이블</div><div class="chip" style="width:200px;">모든 set</div></div>
+</div>
+<!-- axis 3: write mask -->
+<div class="axis" style="left:1320px; width:530px;">
+  <div class="h">useful 비트 write mask 기준</div>
+  <div class="row"><div class="chip" style="width:160px;">useful 필드 위치</div><div class="chip" style="width:160px;">entry 전체 폭<span class="s">padding 포함</span></div><div class="chip" style="width:160px;">bank 선택</div></div>
+</div>
+
+<!-- leaves -->
+<div class="leaf ok" style="left:135px; width:180px;">
+  <div class="t"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>reset 진행</div>
+  <div class="d">idle마다 1 set씩<br>유한 시간 내 완료</div>
+</div>
+<div class="leaf bad" style="left:330px; width:250px;">
+  <div class="t"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>sweep 정지</div>
+  <div class="d">진행 조건: 요청·학습 없는 idle<br>full 벤치에서 idle cycle 부재<br>useful=1 영구 유지, allocate 불가</div>
+</div>
+
+<div class="leaf ok" style="left:765px; width:180px;">
+  <div class="t"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>전 테이블 순회</div>
+  <div class="d">5개 테이블 동시 reset</div>
+</div>
+<div class="leaf ok" style="left:975px; width:180px;">
+  <div class="t"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>전 set 순회</div>
+  <div class="d">set 카운터 wrap까지</div>
+</div>
+
+<div class="leaf ok" style="left:1325px; width:180px;">
+  <div class="t"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>정상 위치</div>
+  <div class="d">useful 비트만 0으로</div>
+</div>
+<div class="leaf bad" style="left:1495px; width:230px;">
+  <div class="t"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>일부 way 미reset</div>
+  <div class="d">마스크 폭 = entry 폭 (padding 포함)<br>실제 useful 비트와 정렬 어긋남<br>upstream 수정 PR과 동일 지점</div>
+</div>
+<div class="leaf ok" style="left:1745px; width:140px;">
+  <div class="t"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>정상 선택</div>
+</div>
+
+<div class="kpis">
+  <div class="kpi"><div class="n h">1</div><div class="d">승인된 요구사항<br>상세 스펙 없음, 목적 수준 문장</div></div>
+  <div class="kpi"><div class="n a">7</div><div class="d">Agent가 도출한 검사 항목<br>부하, 범위, 비트 폭 조건별</div></div>
+  <div class="kpi"><div class="n b">2</div><div class="d">검출된 버그, upstream 수정과 일치<br>liveness 1건, 비트 폭 1건</div></div>
+  <div class="kpi"><div class="n">0</div><div class="d">사람이 쓴 테스트, formal property<br>코드 추적만으로 검출</div></div>
+</div>
+<div class="note">관측 지표 ittage_reset_u · slice 벤치 대비 full 벤치에서 급감 → 요구사항 위반의 증거 · 검사 항목 도출은 Agent, 판단은 설계자</div>
+
+<div class="foot">NLGTM · 하드웨어 설계 리뷰 자동화 에이전트</div>
+</body>
+</html>

@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>NLGTM Agent Flow</title>
+<style>
+  :root {
+    --ink: #0F172A; --ink-2: #334155; --muted: #64748B; --line: #E2E8F0;
+    --agent: #4F46E5; --agent-bg: #EEF2FF; --agent-line: #C7D2FE;
+    --human: #EA580C; --human-bg: #FFF7ED; --human-line: #FDBA74;
+    --input: #475569; --input-bg: #F1F5F9; --input-line: #CBD5E1;
+    --ok: #16A34A; --bad: #DC2626;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1920px; height: 1080px; background: #FFFFFF; }
+  body { font-family: "Noto Sans KR", "Pretendard", "Malgun Gothic", "Segoe UI", sans-serif; color: var(--ink); position: relative; overflow: hidden; }
+
+  .brand { position: absolute; left: 80px; top: 56px; display: flex; align-items: baseline; gap: 18px; }
+  .brand .logo { font-size: 40px; font-weight: 800; letter-spacing: -0.5px; color: var(--ink); }
+  .brand .logo span { color: var(--agent); }
+  .brand .tag { font-size: 18px; color: var(--muted); font-weight: 500; }
+  .title { position: absolute; left: 80px; top: 116px; font-size: 26px; font-weight: 600; color: var(--ink-2); }
+
+  .legend { position: absolute; right: 80px; top: 70px; display: flex; gap: 22px; font-size: 15px; color: var(--muted); }
+  .legend i { display: inline-block; width: 14px; height: 14px; border-radius: 4px; margin-right: 8px; vertical-align: -1px; }
+
+  .lane-title { position: absolute; left: 260px; display: flex; align-items: center; gap: 14px; }
+  .lane-title .num { font-size: 15px; font-weight: 700; color: #FFFFFF; background: var(--ink); border-radius: 6px; padding: 3px 10px; letter-spacing: 1px; }
+  .lane-title .txt { font-size: 22px; font-weight: 700; color: var(--ink); }
+  .lane-title .sub { font-size: 15px; color: var(--muted); margin-left: 6px; }
+
+  .card { position: absolute; height: 200px; background: #FFFFFF; border: 1px solid var(--line); border-radius: 16px;
+          box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06); padding: 22px 22px 20px 22px; overflow: hidden; }
+  .card::before { content: ""; position: absolute; left: 0; top: 0; right: 0; height: 6px; background: var(--c); }
+  .card.agent { --c: var(--agent); }
+  .card.human { --c: var(--human); border-color: var(--human-line); background: linear-gradient(180deg, #FFFBF7 0%, #FFFFFF 60%); }
+  .card.input { --c: var(--input); }
+  .card .head { display: flex; align-items: center; gap: 12px; margin-top: 4px; }
+  .card .icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex: 0 0 40px; }
+  .card.agent .icon { background: var(--agent-bg); color: var(--agent); }
+  .card.human .icon { background: var(--human-bg); color: var(--human); }
+  .card.input .icon { background: var(--input-bg); color: var(--input); }
+  .card .icon svg { width: 22px; height: 22px; }
+  .card h3 { font-size: 20px; font-weight: 700; letter-spacing: -0.2px; line-height: 1.2; }
+  .card .who { font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; margin-top: 2px; }
+  .card.agent .who { color: var(--agent); } .card.human .who { color: var(--human); } .card.input .who { color: var(--input); }
+  .card ul { list-style: none; margin-top: 16px; }
+  .card li { font-size: 14.5px; color: var(--ink-2); line-height: 1.55; padding-left: 14px; position: relative; }
+  .card li::before { content: ""; position: absolute; left: 0; top: 10px; width: 5px; height: 5px; border-radius: 50%; background: var(--c); }
+  .card .badge { position: absolute; right: 14px; bottom: 14px; font-size: 12px; font-weight: 700; color: var(--agent); background: var(--agent-bg); border: 1px solid var(--agent-line); border-radius: 999px; padding: 2px 9px; }
+
+  .arrow { position: absolute; width: 70px; height: 200px; display: flex; align-items: center; justify-content: center; color: #94A3B8; }
+  .arrow svg { width: 30px; height: 30px; }
+  .arrow.loop { color: var(--human); flex-direction: column; gap: 4px; font-size: 12px; font-weight: 700; }
+  .arrow.loop svg { width: 34px; height: 34px; }
+
+  .kpis { position: absolute; left: 260px; top: 905px; display: flex; gap: 24px; }
+  .kpi { width: 300px; height: 96px; border-radius: 14px; border: 1px solid var(--line); background: #F8FAFC; padding: 16px 20px; display: flex; align-items: center; gap: 18px; }
+  .kpi .n { font-size: 38px; font-weight: 800; color: var(--ink); letter-spacing: -1px; min-width: 70px; }
+  .kpi .n.h { color: var(--human); } .kpi .n.a { color: var(--agent); }
+  .kpi .d { font-size: 15px; color: var(--ink-2); line-height: 1.4; font-weight: 500; }
+
+  .conn-label { position: absolute; font-size: 14px; font-weight: 600; color: var(--muted); background: #FFFFFF; padding: 2px 10px; border-radius: 999px; border: 1px solid var(--line); }
+  .conn-label.back { color: var(--human); border-color: var(--human-line); }
+  svg.overlay { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; pointer-events: none; }
+
+  .foot { position: absolute; left: 80px; bottom: 34px; font-size: 13px; color: #94A3B8; }
+</style>
+</head>
+<body>
+
+<div class="brand"><div class="logo">NL<span>GTM</span></div><div class="tag">Not Looks Good To Me</div></div>
+<div class="title">Agent Flow · 요구사항 추출부터 수정 PR까지</div>
+<div class="legend">
+  <span><i style="background:var(--agent)"></i>Agent, 무인</span>
+  <span><i style="background:var(--human)"></i>설계자 개입</span>
+  <span><i style="background:var(--input)"></i>입력</span>
+</div>
+
+<!-- overlay connectors -->
+<svg class="overlay" viewBox="0 0 1920 1080">
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#94A3B8"/></marker>
+    <marker id="ahh" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#EA580C"/></marker>
+  </defs>
+  <!-- approved requirements: lane1 last card -> lane2 first card -->
+  <path d="M1520,440 L1520,520 Q1520,530 1510,530 L368,530 Q358,530 358,540 L358,598" fill="none" stroke="#94A3B8" stroke-width="2.5" marker-end="url(#ah)"/>
+  <!-- feedback: report -> requirement extraction, routed around the outside -->
+  <path d="M1048,800 L1048,850 Q1048,860 1038,860 L160,860 Q150,860 150,850 L150,192 Q150,182 160,182 L1140,182 Q1150,182 1150,192 L1150,238" fill="none" stroke="#EA580C" stroke-width="2.5" stroke-dasharray="8 7" marker-end="url(#ahh)"/>
+</svg>
+<div class="conn-label" style="left:880px; top:516px;">승인된 요구사항만 전달</div>
+<div class="conn-label back" style="left:440px; top:846px;">요구사항이 없는 동작 → 새 요구사항 후보로 제안</div>
+
+<!-- Lane 1 -->
+<div class="lane-title" style="top:196px;"><span class="num">01</span><span class="txt">요구사항 만들기</span><span class="sub">추출과 리뷰 반복, 승인 문장 고정</span></div>
+
+<div class="card input" style="left:260px; top:240px; width:300px;">
+  <div class="head"><div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></div><div><h3>코드 읽기</h3><div class="who">입력</div></div></div>
+  <ul><li>소스, 주석, assert</li><li>성능 카운터 이름</li><li>커밋 이력, 설계 문서</li></ul>
+</div>
+<div class="arrow" style="left:560px; top:240px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="12" x2="20" y2="12"/><polyline points="13 5 20 12 13 19"/></svg></div>
+
+<div class="card agent" style="left:630px; top:240px; width:300px;">
+  <div class="head"><div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg></div><div><h3>블록 요약</h3><div class="who">Agent</div></div></div>
+  <ul><li>블록의 목적, 인터페이스</li><li>상태와 상태를 바꾸는 동작</li><li>의도가 드러난 흔적 수집</li></ul>
+</div>
+<div class="arrow" style="left:930px; top:240px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="12" x2="20" y2="12"/><polyline points="13 5 20 12 13 19"/></svg></div>
+
+<div class="card agent" style="left:1000px; top:240px; width:300px;">
+  <div class="head"><div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></div><div><h3>요구사항 추출</h3><div class="who">Agent</div></div></div>
+  <ul><li>지켜야 할 것을 짧은 문장으로</li><li>상세 스펙 대신 목적 수준</li><li>문장마다 근거 첨부</li></ul>
+</div>
+<div class="arrow loop" style="left:1300px; top:240px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg><span>반복</span></div>
+
+<div class="card human" style="left:1370px; top:240px; width:300px;">
+  <div class="head"><div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div><div><h3>설계자 리뷰</h3><div class="who">설계자</div></div></div>
+  <ul><li>accept / edit / reject 표시</li><li>작성 없음, 판단만</li><li>블록당 5~10분</li></ul>
+</div>
+
+<!-- Lane 2 -->
+<div class="lane-title" style="top:556px;"><span class="num">02</span><span class="txt">반례 탐색, 독립 검증, 수정</span><span class="sub">승인된 요구사항별 위반 입력 탐색</span></div>
+
+<div class="card agent" style="left:260px; top:600px; width:196px;">
+  <div class="head"><div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="3" x2="6" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></svg></div><div><h3>조건 분해</h3><div class="who">Agent</div></div></div>
+  <ul><li>요구사항을 검사 항목으로</li><li>bank, 슬롯, 부하 등</li></ul>
+</div>
+<div class="arrow" style="left:456px; top:600px; width:34px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 5 16 12 9 19"/></svg></div>
+
+<div class="card agent" style="left:490px; top:600px; width:196px;">
+  <span class="badge">× N 병렬</span>
+  <div class="head"><div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div><div><h3>반례 탐색</h3><div class="who">Agent</div></div></div>
+  <ul><li>항목당 Agent 1개</li><li>위반 입력 구성</li></ul>
+</div>
+<div class="arrow" style="left:686px; top:600px; width:34px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 5 16 12 9 19"/></svg></div>
+
+<div class="card agent" style="left:720px; top:600px; width:196px;">
+  <span class="badge">× N 독립</span>
+  <div class="head"><div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg></div><div><h3>독립 검증</h3><div class="who">Agent</div></div></div>
+  <ul><li>결론만 전달</li><li>추론은 차단</li><li>처음부터 재추적</li></ul>
+</div>
+<div class="arrow" style="left:916px; top:600px; width:34px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 5 16 12 9 19"/></svg></div>
+
+<div class="card agent" style="left:950px; top:600px; width:196px;">
+  <div class="head"><div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div><div><h3>보고서</h3><div class="who">Agent</div></div></div>
+  <ul><li>확인된 반례만 수록</li><li>위치, 입력, 관측 방법</li></ul>
+</div>
+<div class="arrow" style="left:1146px; top:600px; width:34px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 5 16 12 9 19"/></svg></div>
+
+<div class="card human" style="left:1180px; top:600px; width:196px;">
+  <div class="head"><div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></svg></div><div><h3>Triage</h3><div class="who">설계자</div></div></div>
+  <ul><li>accept / reject 표시</li><li>항목당 1분</li></ul>
+</div>
+<div class="arrow" style="left:1376px; top:600px; width:34px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 5 16 12 9 19"/></svg></div>
+
+<div class="card agent" style="left:1410px; top:600px; width:196px;">
+  <div class="head"><div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></div><div><h3>수정 PR</h3><div class="who">Agent</div></div></div>
+  <ul><li>최소 패치, 컴파일</li><li>카운터 전후 비교</li></ul>
+</div>
+<div class="arrow" style="left:1606px; top:600px; width:34px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 5 16 12 9 19"/></svg></div>
+
+<div class="card human" style="left:1640px; top:600px; width:196px;">
+  <div class="head"><div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M6 21V9a9 9 0 0 0 9 9"/></svg></div><div><h3>Merge</h3><div class="who">설계자</div></div></div>
+  <ul><li>일반 PR 리뷰</li><li>직접 merge 없음</li></ul>
+</div>
+
+<!-- KPIs -->
+<div class="kpis">
+  <div class="kpi"><div class="n h">3곳</div><div class="d">설계자 개입 지점<br>리뷰, triage, merge</div></div>
+  <div class="kpi"><div class="n h">30분</div><div class="d">블록당 설계자 소요 시간<br>작성 없이 판단만</div></div>
+  <div class="kpi"><div class="n a" style="font-size:34px;">×N</div><div class="d">항목별 병렬 반례 탐색<br>독립 검증 통과분만 보고</div></div>
+  <div class="kpi"><div class="n">0</div><div class="d">Agent 직접 merge<br>최종 판단은 설계자</div></div>
+</div>
+
+<div class="foot">NLGTM · 하드웨어 설계 리뷰 자동화 에이전트</div>
+</body>
+</html>

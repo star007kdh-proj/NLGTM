@@ -1,0 +1,128 @@
+# XiangShan (Kunminghu) 프로젝트 설정. 언어: Chisel (Scala DSL). Agent 코어는 언어를 모른다
+# Agent 코어는 이 파일, conventions.md, requirements/ 만 읽는다. requirements/는 Agent가 생성하고 사용자가 리뷰한다.
+
+project: xiangshan
+language: chisel
+root: ../XiangShan_Vanilla   # 대상 레포 경로. NLGTM 레포와 나란히 clone했을 때 기준. 환경에 맞게 수정
+compile: "mill -i xiangshan.compile"
+sim:
+  build: "make emu CONFIG=TLMinimalConfig EMU_THREADS=2 -j10"
+  run: "./build/emu -b 0 -e 0 -i {workload} --diff ./ready-to-run/riscv64-nemu-interpreter-so"
+  workloads:
+    smoke: ./ready-to-run/coremark-2-iteration.bin
+branch_prefix: fix
+commit_style: "title '<type>(<scope>): <imperative>', body <= 3 lines prose, no bullets"
+conventions: conventions.md
+active_config:
+  EnableTwoTaken: true
+  HasVC: true
+  Sv: [39, 48]
+
+blocks:
+  # ---------------- Frontend ----------------
+  bpu:
+    paths: [src/main/scala/xiangshan/frontend/bpu/Bpu.scala, src/main/scala/xiangshan/frontend/bpu/Bundles.scala]
+    requirements: requirements/bpu.md
+    observe: []
+  ubtb:
+    paths: [src/main/scala/xiangshan/frontend/bpu/ubtb/]
+    requirements: requirements/ubtb.md
+    observe: []
+  abtb:
+    paths: [src/main/scala/xiangshan/frontend/bpu/abtb/]
+    requirements: requirements/abtb.md
+    observe: []
+  mbtb:
+    paths: [src/main/scala/xiangshan/frontend/bpu/mbtb/]
+    docs: [docs/Bug/PD_INVALIDATE_FIXES_KR.md]
+    requirements: requirements/mbtb.md
+    observe: [pd_invalidate]
+  tage:
+    paths: [src/main/scala/xiangshan/frontend/bpu/tage/, src/main/scala/xiangshan/frontend/bpu/sc/]
+    requirements: requirements/tage.md
+    observe: []
+  ittage:
+    paths: [src/main/scala/xiangshan/frontend/bpu/ittage/]
+    docs: [docs/ittage_algorithm.md]
+    requirements: requirements/ittage.md
+    observe: [ittage_reset_u, ittage_us_tick_reset, ittage_allocate, ittage_hit]
+  ras:
+    paths: [src/main/scala/xiangshan/frontend/bpu/ras/]
+    requirements: requirements/ras.md
+    observe: []
+  history:
+    paths: [src/main/scala/xiangshan/frontend/bpu/history/]
+    requirements: requirements/history.md
+    observe: []
+  ftq:
+    paths: [src/main/scala/xiangshan/frontend/ftq/]
+    requirements: requirements/ftq.md
+    observe: []
+  ifu:
+    paths: [src/main/scala/xiangshan/frontend/ifu/]
+    requirements: requirements/ifu.md
+    observe: []
+  icache:
+    paths: [src/main/scala/xiangshan/frontend/icache/]
+    requirements: requirements/icache.md
+    observe: []
+  ibuffer:
+    paths: [src/main/scala/xiangshan/frontend/ibuffer/]
+    requirements: requirements/ibuffer.md
+    observe: []
+
+  # ---------------- Backend ----------------
+  decode:
+    paths: [src/main/scala/xiangshan/backend/decode/]
+    requirements: requirements/decode.md
+    observe: []
+  rename:
+    paths: [src/main/scala/xiangshan/backend/rename/]
+    requirements: requirements/rename.md
+    observe: []
+  dispatch:
+    paths: [src/main/scala/xiangshan/backend/dispatch/]
+    requirements: requirements/dispatch.md
+    observe: []
+  issue:
+    paths: [src/main/scala/xiangshan/backend/issue/]
+    requirements: requirements/issue.md
+    observe: []
+  rob:
+    paths: [src/main/scala/xiangshan/backend/rob/]
+    requirements: requirements/rob.md
+    observe: []
+  ctrlblock:
+    paths: [src/main/scala/xiangshan/backend/ctrlblock/, src/main/scala/xiangshan/backend/CtrlBlock.scala]
+    requirements: requirements/ctrlblock.md
+    observe: []
+
+  # ---------------- Memory ----------------
+  lsq:
+    paths: [src/main/scala/xiangshan/mem/lsqueue/]
+    requirements: requirements/lsq.md
+    observe: []
+  ldst_pipe:
+    paths: [src/main/scala/xiangshan/mem/pipeline/]
+    requirements: requirements/ldst_pipe.md
+    observe: []
+  sbuffer:
+    paths: [src/main/scala/xiangshan/mem/sbuffer/]
+    requirements: requirements/sbuffer.md
+    observe: []
+  mdp:
+    paths: [src/main/scala/xiangshan/mem/mdp/]
+    requirements: requirements/mdp.md
+    observe: []
+  dcache:
+    paths: [src/main/scala/xiangshan/cache/dcache/]
+    requirements: requirements/dcache.md
+    observe: []
+  tlb:
+    paths: [src/main/scala/xiangshan/cache/mmu/TLB.scala, src/main/scala/xiangshan/cache/mmu/TLBStorage.scala]
+    requirements: requirements/tlb.md
+    observe: []
+  l2tlb:
+    paths: [src/main/scala/xiangshan/cache/mmu/]
+    requirements: requirements/l2tlb.md
+    observe: []

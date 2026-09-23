@@ -1,0 +1,24 @@
+# 새 프로젝트 설정 템플릿. 이 파일을 configs/<project>/blocks.yaml 로 복사해 채운다.
+# Agent 코어는 이 파일, conventions.md, requirements/ 만 읽는다. 언어와 빌드 시스템은 무관.
+
+project: <name>
+language: <chisel | systemverilog | vhdl | ...>
+root: <대상 레포 경로. NLGTM 레포 기준 상대 경로 또는 절대 경로>
+compile: "<syntax/type check command, e.g. mill -i x.compile, verilator --lint-only ...>"
+sim:                       # 없으면 이 키를 지운다. fix 단계는 compile만 수행
+  build: "<command>"
+  run: "<command with {workload}>"
+  workloads:
+    smoke: <path>
+branch_prefix: fix
+commit_style: "<one line describing the project's commit message convention>"
+conventions: conventions.md
+active_config: {}          # 파라미터 게이트 값. Agent는 이 설정에서 도달 가능한 경로만 보고
+
+blocks:
+  <block>:
+    paths: [<dir or file>, ...]
+    docs: [<optional design docs>]
+    requirements: requirements/<block>.md
+    observe: [<perf counter names>]
+    owner: ""

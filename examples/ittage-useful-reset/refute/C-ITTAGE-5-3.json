@@ -1,0 +1,70 @@
+[
+  {
+    "id": "F-ITTAGE-5-3-a",
+    "claim": "C-ITTAGE-5-3",
+    "requirement": "R-ITTAGE-5",
+    "verdict": "COUNTEREXAMPLE",
+    "location": [
+      "ff68f3c5a:src/main/scala/xiangshan/frontend/bpu/ittage/Bundles.scala:42-49",
+      "ff68f3c5a:src/main/scala/xiangshan/frontend/bpu/ittage/IttageTable.scala:177-179",
+      "ff68f3c5a:src/main/scala/xiangshan/frontend/bpu/ittage/IttageTable.scala:190-194",
+      "ff68f3c5a:src/main/scala/xiangshan/frontend/bpu/ittage/IttageTable.scala:210-216",
+      "ff68f3c5a:src/main/scala/xiangshan/frontend/bpu/ittage/IttageTable.scala:225",
+      "ff68f3c5a:src/main/scala/xiangshan/frontend/bpu/ittage/IttageTable.scala:249-253",
+      "ff68f3c5a:src/main/scala/xiangshan/frontend/bpu/ittage/IttageTable.scala:260",
+      "ff68f3c5a:utility/src/main/scala/utility/sram/SRAMTemplate.scala:59-66",
+      "ff68f3c5a:utility/src/main/scala/utility/sram/SRAMTemplate.scala:314-326",
+      "ff68f3c5a:utility/src/main/scala/utility/sram/SRAMTemplate.scala:683-696"
+    ],
+    "failing_input": "Any sweep write. Active config (ittage/Parameters.scala:23-38): UsefulCntWidth=1, TagWidth=9, TargetWidth=20 (PrunedAddr(20).addr is 19 bits, PrunedAddr.scala:25-26), RegionNums=16, so IttageEntry.asUInt is 38 bits laid out (first-declared field = MSB, Chisel Bundle.asUInt convention) as valid[37] | tag[36:28] | confidenceCnt[27:26] | targetOffset[25:2] (offset.addr [25:7], pointer [6:3], usePcRegion [2]) | usefulCnt.value[1] | paddingBit[0]. In a cycle with needReset=1 && !(io.req.fire || io.update.valid) (IttageTable.scala:182) the write pushed to both banks' write buffers carries bitmask = updateUsBitmask = VecInit.tabulate(38)(_ < 1) = 38'b...0001 (IttageTable.scala:179,193,215), entry.usefulCnt = SaturateNegative (:249-253), entry.paddingBit = DontCare (:260). Take a set S in bank b whose SRAM entry has usefulCnt.value = 1 before the sweep.",
+    "wrong_result": "The bitmask selects bit 0 of the entry, which is paddingBit, not usefulCnt (bit 1). The write reaches the SRAM (IttageTable.scala:225 -> FoldedSRAMTemplate wdata/bitmask passthrough SRAMTemplate.scala:683-696 -> flattened_bitmask(n) = waymask(n/38) && bitmask(n%38) at SRAMTemplate.scala:64-65, wdata = data.asUInt at :323) but only paddingBit of set S is written (with a DontCare value). usefulCnt.value of set S stays 1, in every bank and every set of every table. After resetFinish (IttageTable.scala:184,187-188) needReset clears although no useful bit changed. Corollary of the same off-by-one: updateNoUsBitmask (:178, bits >= 1) includes the useful bit, so an alt-provider update (usefulCntValid=0, Ittage.scala:337-345) overwrites usefulCnt with io.update.usefulCnt = RegEnable(updateUsefulCnt(alt)) whose driver is DontCare (Ittage.scala:176,181). The counter wrap itself is correct: Counter(usefulCanReset, setsPerBank) with setsPerBank = 128 (tables 0,1) / 256 (tables 2,3,4), setIdx width log2Ceil(setsPerBank) (Bundles.scala:85 via IttageTable.scala:202), and the push valid at :212 is unconditional over bankIdx, so both banks receive every sweep set.",
+    "required_result": "After the sweep completes, usefulCnt.value = 0 for every set of both banks of every table.",
+    "observe": "Waveform: during usefulCanReset (IttageTable.scala:182) writeBuffers(b).io.write.head.bits.bitmask (IttageTable.scala:215) == 38'h1 and tables(b).io.w.req.bits.bitmask (IttageTable.scala:225) == 38'h1; on the next predict of the same set io.resp.bits.usefulCnt (IttageTable.scala:165) is still 1. Counter: ittage_us_tick_reset (IttageTable.scala:264) / ittage_reset_u (Ittage.scala:416) keep firing at a high rate because useful bits never clear and allocation (needs saturate-negative useful, Ittage.scala:296-301) stays starved.",
+    "mechanism": "encoding"
+  },
+  {
+    "id": "F-ITTAGE-5-3-b",
+    "claim": "C-ITTAGE-5-3",
+    "requirement": "R-ITTAGE-5",
+    "verdict": "COUNTEREXAMPLE",
+    "location": [
+      "ff68f3c5a:src/main/scala/xiangshan/frontend/bpu/ittage/IttageTable.scala:210-216",
+      "ff68f3c5a:src/main/scala/xiangshan/frontend/bpu/ittage/IttageTable.scala:219-227",
+      "ff68f3c5a:src/main/scala/xiangshan/frontend/bpu/WriteBuffer.scala:131-133",
+      "ff68f3c5a:src/main/scala/xiangshan/frontend/bpu/WriteBuffer.scala:147",
+      "ff68f3c5a:src/main/scala/xiangshan/frontend/bpu/WriteBuffer.scala:175-177",
+      "ff68f3c5a:src/main/scala/xiangshan/frontend/bpu/WriteBuffer.scala:216",
+      "ff68f3c5a:src/main/scala/xiangshan/frontend/bpu/WriteBuffer.scala:219-228",
+      "ff68f3c5a:utility/src/main/scala/utility/sram/SRAMTemplate.scala:423",
+      "ff68f3c5a:utility/src/main/scala/utility/sram/SRAMTemplate.scala:495-496"
+    ],
+    "failing_input": "Independent of finding a (assume the bitmask did select the useful bit). Table t, bank b, its write buffer empty, needReset=1, resetSet = S (IttageTable.scala:184). Cycle c-1: io.update.valid=1 with updateBankIdx=b, updateIdx=S, usefulCntValid=1, usefulCnt=1, bitmask=updateAllBitmask (provider update with altDiffers && correct target, Ittage.scala:348-355; IttageTable.scala:190-192). usefulCanReset=0 this cycle (:182). The buffer stores it at entry 0 (no hit, victim = notUsefulIdx = 0, WriteBuffer.scala:154-166), needWrite(0)=1. Cycle c: no io.req.fire, no io.update.valid -> usefulCanReset=1, sweep write pushed with setIdx=S, bitmask=updateUsBitmask, entry.usefulCnt=0 (IttageTable.scala:212-215). Same cycle bank b has no read (bank.io.r.req.valid = io.req.fire && mask = 0, IttageTable.scala:154) and the single-port SRAM is ready after power-on (conflictStallWrite=0 for singlePort, SRAMTemplate.scala:423,496), so readPort.ready=1 (IttageTable.scala:226) and the buffer drains readIdx = PriorityEncoder(needWrite) = 0 (WriteBuffer.scala:219,225-227).",
+    "wrong_result": "In cycle c the sweep write hits entry 0 (setIdx equal, both tags None -> 0, WriteBuffer.scala:131-133), hitNotWritten=1 (:147), so entries(0) := sweep bits (:175-177) while the read side outputs the OLD entries(0) (:226: the provider update with usefulCnt=1 and all-bits mask) to the SRAM and clears needWrite(0) := false (:227). Next cycle entries(0) holds the sweep request (useful=0, useful-only mask) with needWrite(0)=0 and valids(0)=1; it is never drained (readValidVec := needWrite, :216). SRAM set S of bank b ends the sweep with usefulCnt=1; resetSet has advanced past S and needReset clears at resetFinish.",
+    "required_result": "usefulCnt of set S in bank b must be 0 after the sweep; a sweep request that hits an entry being drained in the same cycle must still reach the SRAM.",
+    "observe": "Waveform on WriteBuffer_ittageTable{t}_bank{b}: in one cycle hitNotWritten=1 (WriteBuffer.scala:147) and readReadyVec(0) && !emptyVec(0) with readIdx === hitIdx (:219,225); next cycle needWrite(0)=0 while entries(0).bitmask == updateUsBitmask. Counter: WriteBuffer_ittageTable{t}_bank{b}_port0_hit_not_written (WriteBuffer.scala:205) increments in a cycle where usefulCanReset (IttageTable.scala:182) is 1.",
+    "mechanism": "guard"
+  },
+  {
+    "id": "F-ITTAGE-5-3-c",
+    "claim": "C-ITTAGE-5-3",
+    "requirement": "R-ITTAGE-5",
+    "verdict": "COUNTEREXAMPLE",
+    "location": [
+      "ff68f3c5a:src/main/scala/xiangshan/frontend/bpu/ittage/IttageTable.scala:154",
+      "ff68f3c5a:src/main/scala/xiangshan/frontend/bpu/ittage/IttageTable.scala:182",
+      "ff68f3c5a:src/main/scala/xiangshan/frontend/bpu/ittage/IttageTable.scala:190-194",
+      "ff68f3c5a:src/main/scala/xiangshan/frontend/bpu/ittage/IttageTable.scala:210-216",
+      "ff68f3c5a:src/main/scala/xiangshan/frontend/bpu/ittage/IttageTable.scala:221-226",
+      "ff68f3c5a:src/main/scala/xiangshan/frontend/bpu/WriteBuffer.scala:131-133",
+      "ff68f3c5a:src/main/scala/xiangshan/frontend/bpu/WriteBuffer.scala:175-177",
+      "ff68f3c5a:src/main/scala/xiangshan/frontend/bpu/ittage/Ittage.scala:176-181",
+      "ff68f3c5a:src/main/scala/xiangshan/frontend/bpu/ittage/Ittage.scala:337-345",
+      "ff68f3c5a:src/main/scala/xiangshan/frontend/bpu/ittage/Ittage.scala:401-410"
+    ],
+    "failing_input": "Independent of finding a. Table t, bank b, set S with SRAM usefulCnt=1. Cycle c: usefulCanReset=1, resetSet=S -> sweep write (setIdx=S, useful-only bitmask, useful=0) stored in bank b's buffer with needWrite=1 (WriteBuffer.scala:163-166). Cycle c+1: io.req.fire with s0_bankIdx=b -> bank.io.r.req.valid=1 (IttageTable.scala:154), so the buffer cannot drain (readPort.ready and writeValid both require !bank.io.r.req.valid, :221,226) and usefulCanReset=0. Cycle c+2: io.update.valid=1 for table t with updateBankIdx=b, updateIdx=S, usefulCntValid=0 (alt-provider penalty update, Ittage.scala:337-345, latched at :401,409) -> bitmask = updateNoUsBitmask (IttageTable.scala:193), pushed to bank b (:212-215); usefulCanReset=0 this cycle, resetSet already holds S+1 and never revisits S in this sweep.",
+    "wrong_result": "The update hits the pending sweep entry (same setIdx, both tags None -> 0, WriteBuffer.scala:131-133), hitNotWritten=1, and entries(e) := update bits (:175-177): the sweep request (useful-only mask, useful=0) is replaced by the update request whose bitmask is meant to exclude the useful bit. The useful clear for (b, S) is dropped; the entry drains later with the update's data/mask only. With the intended field layout usefulCnt of set S stays 1 after the sweep; with the actual layout (finding a) bit 1 = usefulCnt is written with io.update.usefulCnt = RegEnable(updateUsefulCnt(alt), updateMask(alt)) whose driver is DontCare (Ittage.scala:176,181), an arbitrary value rather than 0.",
+    "required_result": "usefulCnt of set S in bank b must be 0 after the sweep; a same-set update merged into a pending sweep entry must keep the useful clear (OR the bitmasks, or keep useful=0 in the merged data).",
+    "observe": "Waveform: WriteBuffer_ittageTable{t}_bank{b} hitNotWritten=1 (WriteBuffer.scala:147) in a cycle where io.update.valid=1 (IttageTable.scala:212) and the hit entry's stored bitmask == updateUsBitmask (IttageTable.scala:179); afterwards no entry of that buffer carries a useful-only bitmask for setIdx S. Counter: WriteBuffer_ittageTable{t}_bank{b}_port0_hit_not_written (WriteBuffer.scala:205) incrementing while needReset=1 (IttageTable.scala:181) with ittage_table_read_write_conflict (IttageTable.scala:266-271) non-zero in the preceding cycle.",
+    "mechanism": "isolation"
+  }
+]

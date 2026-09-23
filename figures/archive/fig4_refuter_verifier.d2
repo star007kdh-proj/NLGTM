@@ -1,0 +1,72 @@
+vars: {
+  d2-config: {
+    layout-engine: elk
+    theme-id: 0
+    pad: 30
+  }
+}
+direction: right
+
+classes: {
+  box: {
+    style: {fill: "#EEF2FF"; stroke: "#6366F1"; border-radius: 12; font-size: 18; bold: true; stroke-width: 2}
+  }
+  inner: {
+    style: {fill: "#FFFFFF"; stroke: "#A5B4FC"; border-radius: 8; font-size: 14}
+  }
+  wall: {
+    style: {fill: "#9CA3AF"; stroke: "#9CA3AF"; font-color: "#FFFFFF"; font-size: 14; bold: true}
+  }
+  ok: {
+    style: {fill: "#DCFCE7"; stroke: "#16A34A"; font-color: "#15803D"; border-radius: 8; bold: true; font-size: 14}
+  }
+  bad: {
+    style: {fill: "#FEE2E2"; stroke: "#DC2626"; font-color: "#B91C1C"; border-radius: 8; bold: true; font-size: 14}
+  }
+  gray: {
+    style: {fill: "#F3F4F6"; stroke: "#9CA3AF"; font-color: "#6B7280"; border-radius: 8; bold: true; font-size: 14}
+  }
+}
+
+title: |md
+  # 반례를 찾은 Agent와 그걸 다시 따져보는 Agent는 서로의 생각을 보지 못한다
+| {near: top-center}
+
+refuter: "Refuter\n이 요구사항이 깨지는 입력을 찾아라" {
+  class: box
+  direction: down
+  think: 추론\n코드를 따라가며 조건, 인코딩,\n폭, 오래된 값, 진행 여부를 본다 {class: inner}
+  concl: 결론\n어떤 입력에서, 어느 줄에서,\n무엇이 잘못되나 {class: inner; style.stroke: "#6366F1"; style.stroke-width: 2}
+}
+
+wall: 격리 {
+  class: wall
+  width: 36
+  height: 300
+}
+wall -> verifier: {style.opacity: 0}
+
+verifier: "Verifier\n그 입력으로 정말 깨지는지 처음부터 다시 계산하라" {
+  class: box
+  direction: down
+  trace: 독립 재추적\n그 입력이 실제로 올 수 있나,\n다른 경로가 막아주지는 않나,\n정말 요구사항 위반인가 {class: inner}
+  out: "" {
+    style.fill: transparent
+    style.stroke: transparent
+    grid-rows: 1
+    c: CONFIRMED {class: ok}
+    r: REJECTED {class: bad}
+    u: UNCERTAIN {class: gray}
+  }
+}
+
+refuter.concl -> verifier.trace: 결론만 넘어간다 {
+  style: {stroke: "#64748B"; stroke-width: 2; font-size: 13}
+}
+refuter.think -> wall: 추론은 여기서 막힌다 {
+  style: {stroke: "#DC2626"; stroke-dash: 5; font-size: 13; font-color: "#B91C1C"}
+}
+
+note: |md
+  같은 논리를 같은 눈으로 다시 보면 틀린 결론도 그대로 통과한다. 결론만 넘기면 Verifier는 다른 길로 같은 곳에 도착해야 한다. 보고서에는 CONFIRMED만 실린다.
+| {near: bottom-center}
