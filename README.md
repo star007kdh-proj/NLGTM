@@ -5,6 +5,8 @@
 
 ## 흐름
 
+![NLGTM Agent flow](figures/agent_flow.png)
+
 ```
 코드 ──> MAS (블록별 목적·인터페이스·상태·메커니즘) ──> 블록별 요구사항 추출 (짧게, 근거 첨부)
                                                               │
@@ -22,6 +24,8 @@
 사용자가 쓰는 것은 없다. 읽고 표시만 한다. 개입 지점은 요구사항 리뷰, finding triage, PR merge 세 곳.
 
 ## 왜 이 방식인가
+
+![단순화된 요구사항 하나가 조건별 검사 항목으로 갈라지면 버그가 보인다. ITTAGE 예시](figures/requirement_tree.png)
 
 - Formal / UT 같은 verification 인프라가 부족해도 리뷰만으로 잡히는 버그가 대부분이다. 이 레포의 BTB invalidate, ITTAGE useful reset, FTQ meta, backend target 검증 버그가 전부 리뷰로 발견됐다. 문제는 리뷰에 드는 사람 시간이다
 - 에뮬레이션(ZeBu)은 한 턴에 2~3일이다. backend target 검증 버그는 파형, 가설, 수정, 재실행을 반복하며 한 달 넘게 걸렸다. 리뷰는 턴어라운드가 없다. 리뷰를 자동화하면 그 한 달이 하루 단위로 줄어든다
