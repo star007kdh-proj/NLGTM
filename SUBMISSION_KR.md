@@ -108,7 +108,7 @@ NLGTM/
 
 실제 실행 결과. 산출물 전체는 repository `examples/ittage-useful-reset/` (mas.md, requirements.v1/v2.md, claims.json, refute/, verify/, report.md, NOTES_KR.md).
 
-### 4.1 ITTAGE 블록 감사 (rev ff68f3c5a, 2026-09-23)
+### 4.1 ITTAGE 블록 감사 (2026-09-23)
 
 | 단계 | 결과 |
 |---|---|

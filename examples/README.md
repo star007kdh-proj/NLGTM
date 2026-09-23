@@ -17,6 +17,6 @@ examples/<name>/
 
 목록
 - `ittage-useful-reset/`: 실행 완료 (2026-09-23). finding 5건, 신규 2건. 정답 대조는 NOTES_KR.md
-- `mbtb-pd-invalidate/`: rev `182ce7745` 대상. 정답지는 `b6488b0d5`, `4690ac6a4`, `ff68f3c5a`
-- `backend-targetmem/`: rev `7d93eacc3` 직전 대상. 정답지는 `7d93eacc3`. ZeBu로 한 달 이상 걸린 건
+- `mbtb-pd-invalidate/`: 예정. 정답지는 BTB invalidate 수정 커밋 3건
+- `backend-targetmem/`: 예정. 정답지는 targetMem 도입 커밋. ZeBu로 한 달 이상 걸린 건
 - 이후 backend / mem 블록, 그리고 하드웨어가 아닌 프로젝트 예시 추가. 예시는 방법의 증거일 뿐 Agent는 블록이나 언어에 종속되지 않는다
